@@ -17,11 +17,16 @@ sys.path.append(os.path.dirname(__file__))
 # import the Chris app superclass
 from chrisapp.base import ChrisApp
 
-
 Gstr_title = """
 
-Generate a title from 
-http://patorjk.com/software/taag/#p=display&f=Doom&t=mricnn_predict
+                _                                         _ _      _   
+               (_)                                       | (_)    | |  
+ _ __ ___  _ __ _  ___ _ __  _ __      _ __  _ __ ___  __| |_  ___| |_ 
+| '_ ` _ \| '__| |/ __| '_ \| '_ \    | '_ \| '__/ _ \/ _` | |/ __| __|
+| | | | | | |  | | (__| | | | | | |   | |_) | | |  __/ (_| | | (__| |_ 
+|_| |_| |_|_|  |_|\___|_| |_|_| |_|   | .__/|_|  \___|\__,_|_|\___|\__|
+                                ______| |                              
+                               |______|_|                
 
 """
 
@@ -131,13 +136,93 @@ class Mricnn_predict(ChrisApp):
         Define the CLI arguments accepted by this plugin app.
         Use self.add_argument to specify a new app argument.
         """
-    def load_test_data():
+        self.add_argument('--model',dest='model',type=str,optional=False,
+                          help='Which model do you want to train?')
+        self.add_argument('--testDir',dest='testDir',type=str,default="test",optional=False,
+                          help='Specify the name of the directory that contains the test data')
+
+    
+    def create_test_data(options):
+        test_data_path= options.inputdir+'/test/'
+        dirs = os.listdir(test_data_path)
+        total = int(len(dirs))*18
+
+        imgs = np.ndarray((total, image_depth, image_rows, image_cols), dtype=np.uint8)
+
+        i = 0
+        j = 0
+        print('-'*30)
+        print('Creating test images...')
+        print('-'*30)
+        for dirr in sorted(os.listdir(test_data_path)):
+            dirr = os.path.join(test_data_path, dirr)
+            images = sorted(os.listdir(dirr))
+            count = total
+            for image_name in images:
+                img = imread(os.path.join(dirr, image_name), as_gray=True)
+                #img= imread(dirr+'/'+image_name)
+                #info = np.iinfo(img.dtype) # Get the information of the incoming image type
+                img = img.astype(np.uint8)
+                #img = img/255.
+
+                img = np.array([img])
+                if i< 17:
+                    imgs[i][j] = img
+
+                    j += 1
+
+                    # if j % (image_depth-2) == 0:
+                    #     imgs[0][i+1][0] = img
+            
+                    if j % (image_depth-1) == 0:
+                        imgs[i][0] = img
+
+                    if j % image_depth == 0:
+                        imgs[i][1] = img
+               	        j = 2
+               	        i += 1
+               	        if (i % 100) == 0:
+                            print('Done: {0}/{1} test 3d images'.format(i, count))
+
+        print('Loading done.')
+
+        imgs = preprocess(imgs)
+
+        np.save(options.inputdir+'/imgs_test.npy', imgs)
+
+        imgs = preprocess_squeeze(imgs)
+
+        count_processed = 0
+        pred_dir = 'test_preprocessed'
+        if not os.path.exists(pred_dir):
+            os.mkdir(pred_dir)
+        for x in range(0, imgs.shape[0]):
+            for y in range(0, imgs.shape[1]):
+                imsave(os.path.join(pred_dir, 'pre_processed_' + str(count_processed) + '.png'), imgs[x][y])
+                count_processed += 1
+                if (count_processed % 100) == 0:
+                    print('Done: {0}/{1} test images'.format(count_processed, imgs.shape[0]*imgs.shape[1]))
+
+        print('Saving to .npy files done.')
+
+
+    def load_test_data(options):
+        imgs_test = np.load(options.inputdir+'/imgs_test.npy')
+        return imgs_test
+
+
+    def preprocess(imgs):
+        imgs = np.expand_dims(imgs, axis=4)
+        print(' ---------------- preprocessed -----------------')
+        return imgs
+
+    def preprocess_squeeze(imgs):
+        imgs = np.squeeze(imgs, axis=4)
+        print(' ---------------- preprocessed squeezed -----------------')
+        return imgs
    
-    def post_process_data():
          
     def predict(self,options):
-
-
 
         print('-'*30)
         print('Loading and preprocessing test data...')
