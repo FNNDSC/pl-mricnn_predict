@@ -252,10 +252,10 @@ class Mricnn_predict(ChrisApp):
                     # if j % (image_depth-2) == 0:
                     #     imgs[0][i+1][0] = img
             
-                    if j % (image_depth-1) == 0:
+                    if j % (img_depth-1) == 0:
                         imgs[i][0] = img
 
-                    if j % image_depth == 0:
+                    if j % img_depth == 0:
                         imgs[i][1] = img
                	        j = 2
                	        i += 1
