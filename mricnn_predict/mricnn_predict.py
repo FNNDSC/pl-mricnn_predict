@@ -340,7 +340,7 @@ class Mricnn_predict(ChrisApp):
         print('Saving predicted masks to files...')
         print('-' * 30)
 
-        imgs_mask_test = preprocess_squeeze(imgs_mask_test)
+        imgs_mask_test = self.preprocess_squeeze(imgs_mask_test)
         # imgs_mask_test /= 1.7
         #imgs_mask_test = np.around(imgs_mask_test, decimals=0)
         #info = np.iinfo(np.uint16) # Get the information of the incoming image type
