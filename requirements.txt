@@ -3,3 +3,5 @@ pudb
 numpy
 keras
 tensorflow
+scikit-image
+imageio

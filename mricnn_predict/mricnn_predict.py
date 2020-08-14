@@ -17,6 +17,10 @@ sys.path.append(os.path.dirname(__file__))
 from keras.optimizers import RMSprop, Adam, SGD
 from keras.models import Model,load_model
 from keras.layers import Input, concatenate, Conv3D, MaxPooling3D, Conv3DTranspose, AveragePooling3D, ZeroPadding3D
+from skimage.transform import resize
+from skimage.io import imsave
+
+from skimage.io import imread
 
 # import the Chris app superclass
 from chrisapp.base import ChrisApp
