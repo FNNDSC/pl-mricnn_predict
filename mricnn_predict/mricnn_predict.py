@@ -12,10 +12,19 @@
 
 import os
 import sys
+import numpy as np
 sys.path.append(os.path.dirname(__file__))
+from keras.optimizers import RMSprop, Adam, SGD
+from keras.models import Model,load_model
+from keras.layers import Input, concatenate, Conv3D, MaxPooling3D, Conv3DTranspose, AveragePooling3D, ZeroPadding3D
 
 # import the Chris app superclass
 from chrisapp.base import ChrisApp
+project_name = '3D-Dense-Unet'
+img_rows = 256
+img_cols = 256
+img_depth = 16
+smooth = 1.
 
 Gstr_title = """
 
@@ -141,13 +150,78 @@ class Mricnn_predict(ChrisApp):
         self.add_argument('--testDir',dest='testDir',type=str,default="test",optional=False,
                           help='Specify the name of the directory that contains the test data')
 
+    def get_unet(self):
+        inputs = Input((img_depth, img_rows, img_cols, 1))
+        conv11 = Conv3D(32, (3, 3, 3), activation='relu', padding='same')(inputs)
+        conc11 = concatenate([inputs, conv11], axis=4)
+        conv12 = Conv3D(32, (3, 3, 3), activation='relu', padding='same')(conc11)
+        conc12 = concatenate([inputs, conv12], axis=4)
+        pool1 = MaxPooling3D(pool_size=(2, 2, 2))(conc12)
+
+        conv21 = Conv3D(64, (3, 3, 3), activation='relu', padding='same')(pool1)
+        conc21 = concatenate([pool1, conv21], axis=4)
+        conv22 = Conv3D(64, (3, 3, 3), activation='relu', padding='same')(conc21)
+        conc22 = concatenate([pool1, conv22], axis=4)
+        pool2 = MaxPooling3D(pool_size=(2, 2, 2))(conc22)
+
+        conv31 = Conv3D(128, (3, 3, 3), activation='relu', padding='same')(pool2)
+        conc31 = concatenate([pool2, conv31], axis=4)
+        conv32 = Conv3D(128, (3, 3, 3), activation='relu', padding='same')(conc31)
+        conc32 = concatenate([pool2, conv32], axis=4)
+        pool3 = MaxPooling3D(pool_size=(2, 2, 2))(conc32)
+
+        conv41 = Conv3D(256, (3, 3, 3), activation='relu', padding='same')(pool3)
+        conc41 = concatenate([pool3, conv41], axis=4)
+        conv42 = Conv3D(256, (3, 3, 3), activation='relu', padding='same')(conc41)
+        conc42 = concatenate([pool3, conv42], axis=4)
+        pool4 = MaxPooling3D(pool_size=(2, 2, 2))(conc42)
+
+        conv51 = Conv3D(512, (3, 3, 3), activation='relu', padding='same')(pool4)
+        conc51 = concatenate([pool4, conv51], axis=4)
+        conv52 = Conv3D(512, (3, 3, 3), activation='relu', padding='same')(conc51)
+        conc52 = concatenate([pool4, conv52], axis=4)
+
+        up6 = concatenate([Conv3DTranspose(256, (2, 2, 2), strides=(2, 2, 2), padding='same')(conc52), conc42], axis=4)
+        conv61 = Conv3D(256, (3, 3, 3), activation='relu', padding='same')(up6)
+        conc61 = concatenate([up6, conv61], axis=4)
+        conv62 = Conv3D(256, (3, 3, 3), activation='relu', padding='same')(conc61)
+        conc62 = concatenate([up6, conv62], axis=4)
+
+        up7 = concatenate([Conv3DTranspose(128, (2, 2, 2), strides=(2, 2, 2), padding='same')(conc62), conv32], axis=4)
+        conv71 = Conv3D(128, (3, 3, 3), activation='relu', padding='same')(up7)
+        conc71 = concatenate([up7, conv71], axis=4)
+        conv72 = Conv3D(128, (3, 3, 3), activation='relu', padding='same')(conc71)
+        conc72 = concatenate([up7, conv72], axis=4)
+
+        up8 = concatenate([Conv3DTranspose(64, (2, 2, 2), strides=(2, 2, 2), padding='same')(conc72), conv22], axis=4)
+        conv81 = Conv3D(64, (3, 3, 3), activation='relu', padding='same')(up8)
+        conc81 = concatenate([up8, conv81], axis=4)
+        conv82 = Conv3D(64, (3, 3, 3), activation='relu', padding='same')(conc81)
+        conc82 = concatenate([up8, conv82], axis=4)
+
+        up9 = concatenate([Conv3DTranspose(32, (2, 2, 2), strides=(2, 2, 2), padding='same')(conc82), conv12], axis=4)
+        conv91 = Conv3D(32, (3, 3, 3), activation='relu', padding='same')(up9)
+        conc91 = concatenate([up9, conv91], axis=4)
+        conv92 = Conv3D(32, (3, 3, 3), activation='relu', padding='same')(conc91)
+        conc92 = concatenate([up9, conv92], axis=4)
+
+        conv10 = Conv3D(1, (1, 1, 1), activation='sigmoid')(conc92)
+
+        model = Model(inputs=[inputs], outputs=[conv10])
+
+        model.summary()
+        #plot_model(model, to_file='model.png')
+
+        model.compile(optimizer=Adam(lr=1e-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.000000199), loss='binary_crossentropy', metrics=['accuracy'])
+
+        return model
     
-    def create_test_data(options):
-        test_data_path= options.inputdir+'/test/'
+    def create_test_data(self,options):
+        test_data_path= options.inputdir+'/%s/' %options.testDir
         dirs = os.listdir(test_data_path)
         total = int(len(dirs))*18
 
-        imgs = np.ndarray((total, image_depth, image_rows, image_cols), dtype=np.uint8)
+        imgs = np.ndarray((total, img_depth, img_rows, img_cols), dtype=np.uint8)
 
         i = 0
         j = 0
@@ -186,11 +260,11 @@ class Mricnn_predict(ChrisApp):
 
         print('Loading done.')
 
-        imgs = preprocess(imgs)
+        imgs = self.preprocess(imgs)
 
         np.save(options.inputdir+'/imgs_test.npy', imgs)
 
-        imgs = preprocess_squeeze(imgs)
+        imgs = self.preprocess_squeeze(imgs)
 
         count_processed = 0
         pred_dir = 'test_preprocessed'
@@ -206,17 +280,17 @@ class Mricnn_predict(ChrisApp):
         print('Saving to .npy files done.')
 
 
-    def load_test_data(options):
+    def load_test_data(self,options):
         imgs_test = np.load(options.inputdir+'/imgs_test.npy')
         return imgs_test
 
 
-    def preprocess(imgs):
+    def preprocess(self,imgs):
         imgs = np.expand_dims(imgs, axis=4)
         print(' ---------------- preprocessed -----------------')
         return imgs
 
-    def preprocess_squeeze(imgs):
+    def preprocess_squeeze(self,imgs):
         imgs = np.squeeze(imgs, axis=4)
         print(' ---------------- preprocessed squeezed -----------------')
         return imgs
@@ -227,9 +301,9 @@ class Mricnn_predict(ChrisApp):
         print('-'*30)
         print('Loading and preprocessing test data...')
         print('-'*30)
-        create_test_data(options)
+        self.create_test_data(options)
 
-        imgs_test = load_test_data(options)
+        imgs_test = self.load_test_data(options)
         imgs_test = imgs_test.astype('float32')
 
 
@@ -241,10 +315,10 @@ class Mricnn_predict(ChrisApp):
         print('-'*30)
 
         model = self.get_unet()
-        weight_dir =options.inputdir+ '/weights'
+        weight_dir =options.inputdir
         if not os.path.exists(weight_dir):
             os.mkdir(weight_dir)
-        model.load_weights(os.path.join(weight_dir, project_name + '.h5'))
+        model.load_weights(os.path.join(weight_dir, options.model + '.h5'))
 
         print('-'*30)
         print('Predicting masks on test data...')
@@ -300,6 +374,7 @@ class Mricnn_predict(ChrisApp):
         """
         print(Gstr_title)
         print('Version: %s' % self.get_version())
+        self.predict(options)
 
     def show_man_page(self):
         """
