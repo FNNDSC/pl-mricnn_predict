@@ -334,7 +334,7 @@ class Mricnn_predict(ChrisApp):
         if not os.path.exists(npy_mask_dir):
             os.mkdir(npy_mask_dir)
 
-        np.save(os.path.join(npy_mask_dir, project_name + '_mask.npy'), imgs_mask_test)
+        np.save(os.path.join(options.outputdir, project_name + '_mask.npy'), imgs_mask_test)
 
         print('-' * 30)
         print('Saving predicted masks to files...')
