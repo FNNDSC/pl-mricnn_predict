@@ -108,6 +108,14 @@ Examples
 --------
 
 
+.. code:: bash
+
+    mkdir in out && chmod 777 out
+    docker run --rm -v $(pwd)/in:/incoming -v $(pwd)/out:/outgoing      \
+            fnndsc/pl-mricnn_predict mricnn_predict.py                  \
+            --testDir test                                              \
+            --model model                                               \
+            /incoming /outgoing
 
 
 
