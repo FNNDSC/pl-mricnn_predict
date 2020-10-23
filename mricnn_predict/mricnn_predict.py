@@ -65,6 +65,8 @@ where necessary.)
             [--savejson <DIR>]                                          \\
             [-v <level>] [--verbosity <level>]                          \\
             [--version]                                                 \\
+            [--model]                                                   \\
+            [--testDir]                                                 \\
             <inputDir>                                                  \\
             <outputDir> 
 
@@ -102,6 +104,12 @@ where necessary.)
         
         [--version]
         If specified, print version number and exit. 
+        
+        [--model]
+        Specify the name of the trained model
+        
+        [--testDir]
+        The name of the test directory that contains the test data(png images)
 
 """
 
