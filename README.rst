@@ -29,6 +29,8 @@ Synopsis
         [--version]                                                 \
         [--man]                                                     \
         [--meta]                                                    \
+        [--testDir]                                                 \
+        [--model]                                                   \
         <inputDir>
         <outputDir> 
 
@@ -53,6 +55,12 @@ Arguments
 
     [--meta]
     If specified, print plugin meta data.
+    
+    [--model]
+    The name of the training model
+    
+    [--testDir]
+    The name of the training dir
 
 
 Run
